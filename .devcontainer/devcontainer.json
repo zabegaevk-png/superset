@@ -1,37 +1,47 @@
 {
-  "name": "Apache Superset Development",
-  "image": "ghcr.io/apache/superset:devcontainer-base",
+  "name": "Apache Superset Development (Codespaces)",
+
+  // Stable base image from Microsoft Dev Containers (has Python already)
+  "image": "mcr.microsoft.com/devcontainers/python:3.11-bookworm",
 
   "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {
-      "moby": true,
-      "dockerDashComposeVersion": "v2"
-    },
-    "ghcr.io/devcontainers/features/node:1": {
-      "version": "20"
-    },
-    "ghcr.io/devcontainers/features/git:1": {},
     "ghcr.io/devcontainers/features/common-utils:2": {
       "configureZshAsDefaultShell": true
     },
-    "ghcr.io/devcontainers/features/sshd:1": {
-      "version": "latest"
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20"
+    },
+
+    // Docker inside Codespaces container (needed for docker compose)
+    // moby:false is a common workaround for recent base-image compatibility issues
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "moby": false,
+      "dockerDashComposeVersion": "v2"
     }
   },
 
+  // Superset dev server in Codespaces is commonly exposed on 9001
   "forwardPorts": [9001],
   "portsAttributes": {
     "9001": {
-      "label": "Superset (via Webpack Dev Server)",
+      "label": "Superset",
       "onAutoForward": "notify",
       "visibility": "public"
     }
   },
 
-  "postCreateCommand": "bash .devcontainer/setup-dev.sh || echo '⚠️ Setup had issues - run .devcontainer/setup-dev.sh manually'",
-  "postStartCommand": "bash -c 'echo \"Waiting 30s for services to initialize...\"; sleep 30; .devcontainer/start-superset.sh || echo \"⚠️ Auto-start failed - run start-superset manually\"'",
+  // Recommended for Superset Codespaces: >= 4 CPU / 16GB RAM
+  "hostRequirements": {
+    "cpus": 4,
+    "memory": "16gb"
+  },
 
-  "remoteEnv": {},
+  // Run commands after container is created
+  "postCreateCommand": "bash .devcontainer/setup-dev.sh || echo '⚠️ Setup had issues - run .devcontainer/setup-dev.sh manually'",
+
+  // Auto-start Superset after ensuring Docker is ready
+  "postStartCommand": "bash -lc 'echo \"Waiting 30s for services to initialize...\"; sleep 30; .devcontainer/start-superset.sh || echo \"⚠️ Auto-start failed - run start-superset manually\"'",
 
   "customizations": {
     "vscode": {
