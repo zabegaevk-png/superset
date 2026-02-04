@@ -100,13 +100,13 @@ services:
 
 superset-light:
   env_file:
-    - path: docker/.env # default
+    - path: docker/.env
       required: true
-    - path: docker/.env-local # optional override
+    - path: docker/.env-local
       required: false
 
   ports:
-    - "${SUPERSET_PORT:-8088}:8088"
+    - "8088:8088"
     build:
       <<: *common-build
     command: ["/app/docker/docker-bootstrap.sh", "app"]
