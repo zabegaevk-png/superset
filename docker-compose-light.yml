@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.
@@ -13,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
 
 # -----------------------------------------------------------------------
 # Lightweight docker-compose for running multiple Superset instances
@@ -33,25 +31,6 @@
 # Tests run in an isolated environment with a separate test database.
 # The pytest-runner service automatically creates and initializes the test database on first use.
 #
-# Basic usage:
-#   docker-compose -f docker-compose-light.yml run --rm pytest-runner pytest tests/unit_tests/
-#
-# Run specific test file:
-#   docker-compose -f docker-compose-light.yml run --rm pytest-runner pytest tests/unit_tests/test_foo.py
-#
-# Run with pytest options:
-#   docker-compose -f docker-compose-light.yml run --rm pytest-runner pytest -v -s -x tests/
-#
-# Force reload test database and run tests (when tests are failing due to bad state):
-#   docker-compose -f docker-compose-light.yml run --rm -e FORCE_RELOAD=true pytest-runner pytest tests/
-#
-# Run any command in test environment:
-#   docker-compose -f docker-compose-light.yml run --rm pytest-runner bash
-#   docker-compose -f docker-compose-light.yml run --rm pytest-runner pytest --collect-only
-#
-# For parallel test execution with different projects:
-#   docker-compose -p project1 -f docker-compose-light.yml run --rm pytest-runner pytest tests/
-#
 # DEVELOPMENT TIPS:
 # - First test run takes ~20-30 seconds (database creation + initialization)
 # - Subsequent runs are fast (~2-3 seconds startup)
@@ -59,14 +38,16 @@
 # - Tests use SimpleCache instead of Redis (no Redis required)
 # - Set SUPERSET_LOG_LEVEL=debug in docker/.env-local for detailed logs
 # -----------------------------------------------------------------------
+
 x-superset-user: &superset-user root
+
 x-superset-volumes: &superset-volumes
-  # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
   - ./docker:/app/docker
   - ./superset:/app/superset
   - ./superset-frontend:/app/superset-frontend
   - superset_home_light:/app/superset_home
   - ./tests:/app/tests
+
 x-common-build: &common-build
   context: .
   target: ${SUPERSET_BUILD_TARGET:-dev} # can use `dev` (default) or `lean`
@@ -98,15 +79,17 @@ services:
         aliases:
           - db
 
-superset-light:
-  env_file:
-    - path: docker/.env
-      required: true
-    - path: docker/.env-local
-      required: false
+  superset-light:
+    env_file:
+      - path: docker/.env
+        required: true
+      - path: docker/.env-local
+        required: false
 
-  ports:
-    - "8088:8088"
+    # IMPORTANT: publish Superset UI port from container -> host (Codespace)
+    ports:
+      - "8088:8088"
+
     build:
       <<: *common-build
     command: ["/app/docker/docker-bootstrap.sh", "app"]
@@ -153,24 +136,17 @@ superset-light:
       context: .
       target: superset-node
       args:
-        # This prevents building the frontend bundle since we'll mount local folder
-        # and build it on startup while firing docker-frontend.sh in dev mode, where
-        # it'll mount and watch local files and rebuild as you update them
         DEV_MODE: "true"
         BUILD_TRANSLATIONS: ${BUILD_TRANSLATIONS:-false}
     environment:
-      # set this to false if you have perf issues running the npm i; npm run dev in-docker
-      # if you do so, you have to run this manually on the host, which should perform better!
       BUILD_SUPERSET_FRONTEND_IN_DOCKER: true
       NPM_RUN_PRUNE: false
       SCARF_ANALYTICS: "${SCARF_ANALYTICS:-}"
-      # configuring the dev-server to use the host.docker.internal to connect to the backend
       superset: "http://superset-light:8088"
-      # Webpack dev server configuration
       WEBPACK_DEVSERVER_HOST: "${WEBPACK_DEVSERVER_HOST:-127.0.0.1}"
       WEBPACK_DEVSERVER_PORT: "${WEBPACK_DEVSERVER_PORT:-9000}"
     ports:
-      - "${NODE_PORT:-9001}:9000"  # Parameterized port, accessible on all interfaces
+      - "${NODE_PORT:-9001}:9000"
     command: ["/app/docker/docker-frontend.sh"]
     env_file:
       - path: docker/.env # default
@@ -189,7 +165,7 @@ superset-light:
       - path: docker/.env-local # optional override
         required: false
     profiles:
-      - test  # Only starts when --profile test is used
+      - test
     depends_on:
       db-light:
         condition: service_started
